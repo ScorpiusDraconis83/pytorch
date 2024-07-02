@@ -34,9 +34,7 @@
     return true;                                       \
   }()
 
-namespace torch {
-namespace profiler {
-namespace impl {
+namespace torch::profiler::impl {
 TORCH_API bool softAssertRaises();
 TORCH_API void setSoftAssertRaises(std::optional<bool> value);
 TORCH_API void logSoftAssert(
@@ -170,8 +168,7 @@ constexpr auto kGroupSize = "Group size";
 constexpr auto kProcessGroupName = "Process Group Name";
 constexpr auto kProcessGroupDesc = "Process Group Description";
 constexpr auto kGroupRanks = "Process Group Ranks";
+constexpr auto kRank = "Rank";
 #endif // USE_DISTRIBUTED
 
-} // namespace impl
-} // namespace profiler
-} // namespace torch
+} // namespace torch::profiler::impl

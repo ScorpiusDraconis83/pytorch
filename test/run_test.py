@@ -5,7 +5,6 @@ import copy
 import glob
 import json
 import os
-import pathlib
 import re
 import shutil
 import signal
@@ -16,6 +15,7 @@ import time
 from collections import defaultdict
 from contextlib import ExitStack
 from datetime import datetime
+from pathlib import Path
 from typing import Any, cast, Dict, List, NamedTuple, Optional, Sequence, Tuple, Union
 
 import pkg_resources
@@ -24,7 +24,6 @@ import torch
 import torch.distributed as dist
 from torch.multiprocessing import current_process, get_context
 from torch.testing._internal.common_utils import (
-    FILE_SCHEMA,
     get_report_path,
     IS_CI,
     IS_MACOS,
@@ -39,7 +38,7 @@ from torch.testing._internal.common_utils import (
     TEST_WITH_SLOW_GRADCHECK,
 )
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # using tools/ to optimize test run.
 sys.path.insert(0, str(REPO_ROOT))
@@ -62,7 +61,6 @@ from tools.testing.target_determination.heuristics.previously_failed_in_pr impor
     gen_additional_test_failures_file,
 )
 from tools.testing.target_determination.heuristics.utils import get_pr_number
-
 from tools.testing.test_run import TestRun
 from tools.testing.test_selections import (
     calculate_shards,
@@ -71,6 +69,7 @@ from tools.testing.test_selections import (
     ShardedTest,
     THRESHOLD,
 )
+
 
 HAVE_TEST_SELECTION_TOOLS = True
 # Make sure to remove REPO_ROOT after import is done
@@ -466,7 +465,7 @@ def run_test(
             )
         else:
             cpp_test = os.path.join(
-                pathlib.Path(test_directory).parent,
+                Path(test_directory).parent,
                 CPP_TEST_PATH,
                 test_file.replace(f"{CPP_TEST_PREFIX}/", ""),
             )
@@ -745,14 +744,7 @@ def test_distributed(test_module, test_directory, options):
             old_environ = dict(os.environ)
             os.environ["TEMP_DIR"] = tmp_dir
             os.environ["BACKEND"] = backend
-            os.environ["INIT_METHOD"] = "env://"
             os.environ.update(env_vars)
-            if with_init_file:
-                if test_module.name == "test_distributed_spawn":
-                    init_method = f"{FILE_SCHEMA}{tmp_dir}/"
-                else:
-                    init_method = f"{FILE_SCHEMA}{tmp_dir}/shared_init_file"
-                os.environ["INIT_METHOD"] = init_method
             try:
                 os.mkdir(os.path.join(tmp_dir, "barrier"))
                 os.mkdir(os.path.join(tmp_dir, "test_dir"))
@@ -808,11 +800,9 @@ def run_doctests(test_module, test_directory, options):
     Assumes the incoming test module is called doctest, and simply executes the
     xdoctest runner on the torch library itself.
     """
-    import pathlib
-
     import xdoctest
 
-    pkgpath = pathlib.Path(torch.__file__).parent
+    pkgpath = Path(torch.__file__).parent
 
     exclude_module_list = ["torch._vendor.*"]
     enabled = {
@@ -1188,21 +1178,15 @@ def parse_args():
             or (IS_WINDOWS and not TEST_CUDA)
             or TEST_CONFIG == "nogpu_AVX512"
             or TEST_CONFIG == "nogpu_NO_AVX2"
-            or (
-                "sm86" not in BUILD_ENVIRONMENT
-                and TEST_CONFIG == "default"
-                and TEST_CUDA
-            )
-            or (not TEST_CUDA and TEST_CONFIG == "default")
+            or TEST_CONFIG == "default"
         )
         and get_pr_number() is not None
         and not strtobool(os.environ.get("NO_TD", "False"))
-        and not IS_SLOW
         and not TEST_WITH_ROCM
         and not IS_MACOS
+        and "xpu" not in BUILD_ENVIRONMENT
         and "onnx" not in BUILD_ENVIRONMENT
-        and "debug" not in BUILD_ENVIRONMENT
-        and "parallelnative" not in BUILD_ENVIRONMENT,
+        and os.environ.get("GITHUB_WORKFLOW", "slow") in ("trunk", "pull"),
     )
     parser.add_argument(
         "--shard",

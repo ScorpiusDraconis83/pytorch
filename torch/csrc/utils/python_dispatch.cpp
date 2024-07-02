@@ -255,7 +255,7 @@ void initDispatchBindings(PyObject* module) {
       .def("debug", &c10::OperatorHandle::debug)
       .def(
           "redispatch_boxed",
-          [](py::object self,
+          [](const py::object& self,
              c10::DispatchKeySet keyset,
              py::args args,
              const py::kwargs& kwargs) {
@@ -689,6 +689,7 @@ void initDispatchBindings(PyObject* module) {
       DEF_ONE(PreDispatch)
       DEF_ONE(Functionalize)
       DEF_ONE(AutocastCPU)
+      DEF_ONE(AutocastMPS)
       DEF_ONE(AutocastXPU)
       DEF_ONE(AutocastHPU)
       DEF_ONE(AutocastIPU)
@@ -819,7 +820,7 @@ void initDispatchBindings(PyObject* module) {
         auto op_names =
             c10::Dispatcher::singleton().getRegistrationsForDispatchKey(k);
         for (auto& op : op_names) {
-          std::cout << op << std::endl;
+          std::cout << op << '\n';
         }
       },
       py::arg("dispatch_key") = static_cast<const char*>(""));
