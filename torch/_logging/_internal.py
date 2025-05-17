@@ -486,6 +486,14 @@ def set_logs(
                 log_state.enable_log(
                     log_registry.log_alias_to_log_qnames.get(alias, alias), val
                 )
+            elif _is_valid_module(alias):
+                if not _has_registered_parent(alias):
+                    log_registry.register_log(alias, alias)
+                else:
+                    log_registry.register_child_log(alias)
+                log_state.enable_log(
+                    log_registry.log_alias_to_log_qnames.get(alias, alias), val
+                )
             else:
                 raise ValueError(
                     f"Unrecognized log or artifact name passed to set_logs: {alias}"
@@ -1294,7 +1302,7 @@ def dtrace_structured(
     *,
     payload_fn: Callable[[], Optional[Union[str, object]]] = lambda: None,
     suppress_context: bool = False,
-    expect_trace_id: bool = True,  # Whether or not we expect to have a current trace id
+    expect_trace_id: bool = False,  # Whether or not we expect to have a current trace id
     record_logging_overhead: bool = True,  # Whether or not to record the time spent on structured logging
 ):
     """

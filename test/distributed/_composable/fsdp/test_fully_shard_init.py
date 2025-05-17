@@ -9,13 +9,6 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 from torch.distributed._composable import replicate
-from torch.distributed._tensor import (
-    DeviceMesh,
-    distribute_tensor,
-    DTensor,
-    Replicate,
-    Shard,
-)
 from torch.distributed.device_mesh import init_device_mesh
 from torch.distributed.fsdp import fully_shard
 from torch.distributed.fsdp._fully_shard._fsdp_init import (
@@ -30,6 +23,13 @@ from torch.distributed.fsdp._fully_shard._fully_shard import FSDPModule
 from torch.distributed.fsdp._init_utils import (
     _init_inter_node_process_group,
     _init_intra_node_process_group,
+)
+from torch.distributed.tensor import (
+    DeviceMesh,
+    distribute_tensor,
+    DTensor,
+    Replicate,
+    Shard,
 )
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
@@ -62,6 +62,19 @@ class TestFullyShardDeviceTensor(FSDPTestMultiThread):
         fully_shard(model)
         cuda_device = torch.device("cuda", torch.cuda.current_device())
         for tensor in itertools.chain(model.parameters(), model.buffers()):
+            self.assertEqual(tensor.device, cuda_device)
+
+    @unittest.skipIf(not TEST_CUDA, "no cuda")
+    def test_move_states_to_device_ignored_param_device(self):
+        cpu_device = torch.device("cpu")
+        model = MLP(8, cpu_device, with_buffer=True)
+        ignored_params = [model.out_proj.weight, model.out_proj.bias]
+        fully_shard(model, ignored_params=set(ignored_params))
+        for tensor in ignored_params:
+            self.assertEqual(tensor.device, cpu_device)
+        cuda_device = torch.device("cuda", torch.cuda.current_device())
+        model.to(torch.device("cuda"))
+        for tensor in ignored_params:
             self.assertEqual(tensor.device, cuda_device)
 
 
@@ -420,9 +433,7 @@ class TestFullyShardShardedParameterDTensor(FSDPTestMultiThread):
         )
         dp_mesh, tp_mesh = global_mesh["dp"], global_mesh["tp"]
         # Use odd dim sizes to test uneven shards
-        # TODO: change "mlp_dim" back to 9 when uneven sharding
-        # is supported for FSDP+TP
-        model = MLP(8, dim_multiplier=3)
+        model = MLP(9, dim_multiplier=3)
         orig_params = [param.detach().clone() for param in model.parameters()]
         orig_param_names = [param_name for param_name, _ in model.named_parameters()]
         parallelize_module(
@@ -829,7 +840,7 @@ class TestFullyShardProcessGroupInit(FSDPTestMultiThread):
         # since the ref has a parent mesh, while the `from_group` one does not
         self.assertEqual(dp_mesh.mesh, ref_dp_mesh.mesh)
         self.assertEqual(dp_mesh._coordinate_on_dim, ref_dp_mesh._coordinate_on_dim)
-        self.assertEqual(dp_mesh._dim_group_infos, ref_dp_mesh._dim_group_infos)
+        self.assertEqual(dp_mesh._dim_group_names, ref_dp_mesh._dim_group_names)
 
         # Check 1D FSDP forward/backward parity over the DP mesh
         # NOTE: We cannot use 2D DTensor-based training here because the DP
@@ -905,12 +916,6 @@ class TestFullyShardProcessGroupInit(FSDPTestMultiThread):
         )
         self.assertEqual(mesh.mesh, ref_mesh.mesh)
         self.assertEqual(mesh._coordinate_on_dim, ref_mesh._coordinate_on_dim)
-        for (_, ranks, _), (_, ref_ranks, _) in zip(
-            mesh._dim_group_infos, ref_mesh._dim_group_infos
-        ):
-            # Since we manually constructed new subgroups, the test and ref
-            # groups are not the same
-            self.assertEqual(ranks, ref_ranks)
         for mesh_dim_name in mesh_dim_names:
             child_mesh = mesh[mesh_dim_name]
             ref_child_mesh = ref_mesh[mesh_dim_name]
