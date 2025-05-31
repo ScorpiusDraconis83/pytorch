@@ -69,6 +69,7 @@ Communication collectives
     comm.broadcast
     comm.broadcast_coalesced
     comm.reduce_add
+    comm.reduce_add_coalesced
     comm.scatter
     comm.gather
 
@@ -127,7 +128,6 @@ Memory management
      CUDAPluggableAllocator
      change_current_allocator
      MemPool
-     MemPoolContext
 
 .. currentmodule:: torch.cuda.memory
 
