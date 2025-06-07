@@ -474,7 +474,7 @@ example:
     """
 
 Here, we've tried to check equality of the values of two deep learning
-models with the ``==`` equality operator. However, this is not well-
+models with the ``==`` equality operator. However, this is not well-\
 defined both due to the issue of that operator returning a tensor
 and not a bool, but also because comparison of floating point values
 should use a margin of error (or epsilon) to account for the
@@ -854,7 +854,7 @@ Non-\ ``torch`` Functions
 
 FX uses ``__torch_function__`` as the mechanism by which it intercepts
 calls (see the `technical
-overview <https://github.com/pytorch/pytorch/blob/master/torch/fx/OVERVIEW.md#technical-details>`__
+overview <https://github.com/pytorch/pytorch/blob/main/torch/fx/README.md#technical-details>`__
 for more information about this). Some functions, such as builtin Python
 functions or those in the ``math`` module, are not covered by
 ``__torch_function__``, but we would still like to capture them in
