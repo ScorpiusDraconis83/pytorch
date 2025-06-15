@@ -85,12 +85,23 @@ The following types define the planner interface used during checkpoint:
 .. autoclass:: torch.distributed.checkpoint.planner.WriteItem
   :members:
 
+.. autoclass:: torch.distributed.checkpoint.planner.BytesIOWriteData
+  :members:
+
 We provide a filesystem based storage layer:
 
 .. autoclass:: torch.distributed.checkpoint.FileSystemReader
   :members:
 
 .. autoclass:: torch.distributed.checkpoint.FileSystemWriter
+  :members:
+
+We also provide other storage layers, including ones to interact with HuggingFace safetensors:
+
+.. autoclass:: torch.distributed.checkpoint.HuggingFaceStorageReader
+  :members:
+
+.. autoclass:: torch.distributed.checkpoint.HuggingFaceStorageWriter
   :members:
 
 We provide default implementations of `LoadPlanner` and `SavePlanner` that

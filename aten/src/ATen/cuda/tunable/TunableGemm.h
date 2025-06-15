@@ -55,11 +55,13 @@ class DefaultGemmAndBiasOp : public Callable<GemmAndBiasParams<T>> {
           _transposeBoolFromChar(params->transb),
           params->m, params->n, params->k,
           params->alpha,
+          params->beta,
           params->a, params->lda,
           params->b, params->ldb,
           params->bias,
           params->c, params->ldc,
-          params->activation);
+          params->activation,
+          params->bias2d);
       return OK;
     }
 };
@@ -145,7 +147,11 @@ inline const char* TypeName(T v) {
 
 template <>
 inline const char* TypeName(float v) {
-  return "float";
+  if (at::globalContext().allowTF32CuBLAS()) {
+    return "tf32";
+  } else {
+    return "float";
+  }
 }
 
 template <>
